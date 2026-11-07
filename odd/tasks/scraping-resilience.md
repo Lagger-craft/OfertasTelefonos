@@ -59,3 +59,23 @@ corrida fallida no deje el proyecto sin datos, y agregar una tercera fuente.
   ese día (sin stock); comportamiento correcto del filtro, no bug.
 - Pendiente: decisión de commits (S23Precios no es repo propio; git root es el
   Proyectos padre).
+- L4: Decisión de commits: repo git propio en S23Precios (elección del usuario),
+  rama feat/scraping-resilience renombrada a main por el usuario, push explícito
+  a github.com/Lagger-craft/OfertasTelefonos (9e3ec77). El README/tests se
+  actualizaron para reflejar la publicación (sin GitHub Actions). Commit hecho
+  por el usuario con su propia identidad (repo-local).
+- L5: Review nativo RDD: inassessible para el commit inicial (sin base de diff
+  raíz, autoridad de review desfasada por el git init tras criar el repo, sin
+  binario gentle-ai CLI en la máquina). El usuario dejó el candidato EXPLICITAMENTE
+  sin review: disposición registrada; verificación fuera vía tests (58/7) + corridas reales.
+- Estado final: todo commit 9e3ec77 sincronizado con origin/main; suites verdes;
+  timer systemd activo con corrida real exitosa.
+
+## Log (adenda: 4a fuente)
+- L6 (verbatim): "Podemos intentar agregar la fuente comprala.cl porfa ya que
+  testamos. No se me habia ocurrido". Path small, inline: RED
+  (test_comprala_product_url_is_trusted_across_its_hosts) → GREEN
+  (DEFAULT_SOURCES + TRUSTED_PRODUCT_HOSTS comprala-cl.myshopify.com +
+  script.js sourceLabel/safeOfferUrl). README: Comprala deja de ser candidata
+  futura y pasa a fuente residente. 59 tests Python OK, 7 Node OK; corrida
+  real: 4 fuentes OK, comprala sin ofertas calificadas esta semana.

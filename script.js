@@ -51,6 +51,7 @@ function sourceLabel(source) {
   if (host.includes('reuse')) return 'Reuse Chile';
   if (host.includes('bodegaoportunidades')) return 'Bodega Oportunidades';
   if (host.includes('dlphone')) return 'DL Phone';
+  if (host.includes('comprala')) return 'Comprala';
   return host;
 }
 
@@ -65,7 +66,9 @@ function safeOfferUrl(offer) {
         ? ['bogedaoportunidades.myshopify.com', 'bodegaoportunidades.cl', 'www.bodegaoportunidades.cl']
         : sourceHost === 'dlphone.cl'
           ? ['dlphone.cl', 'www.dlphone.cl', 'd8f7f8-76.myshopify.com']
-          : [sourceHost];
+          : sourceHost === 'comprala.cl'
+            ? ['comprala.cl', 'www.comprala.cl', 'comprala-cl.myshopify.com']
+            : [sourceHost];
     if (target.protocol !== 'https:' || !allowed.includes(target.hostname.toLowerCase()) ||
         target.username || target.password || target.port) return null;
     return target.href;

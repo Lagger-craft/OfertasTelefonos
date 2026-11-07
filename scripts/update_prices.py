@@ -48,7 +48,8 @@ PROFILE_INVALID_MSG = (
 
 DEFAULT_SOURCES = ("https://reusecl.myshopify.com",
                    "https://bogedaoportunidades.myshopify.com",
-                   "https://dlphone.cl")
+                   "https://dlphone.cl",
+                   "https://comprala.cl")
 MCP_PROTOCOL_VERSION = "2025-03-26"
 CLIENT_NAME = "s23-price-collector"
 CLIENT_VERSION = "1.0.0"
@@ -91,6 +92,7 @@ TRUSTED_PRODUCT_HOSTS = {
         "www.bodegaoportunidades.cl",
     },
     "dlphone.cl": {"dlphone.cl", "www.dlphone.cl", "d8f7f8-76.myshopify.com"},
+    "comprala.cl": {"comprala.cl", "www.comprala.cl", "comprala-cl.myshopify.com"},
 }
 
 

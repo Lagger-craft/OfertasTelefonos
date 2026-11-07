@@ -97,19 +97,18 @@ collector rejects those before making any request.
 
 ## Sources and current limitations
 
-- Primary path: for each of **Reuse**, **Bodega Oportunidades** and
-  **DL Phone** (dlphone.cl), the collector uses the merchant's supported
-  UCP/MCP interface (via its `/.well-known/ucp` profile and the read-only
-  `search_catalog` tool declared in
+- Primary path: for each of **Reuse**, **Bodega Oportunidades**,
+  **DL Phone** (dlphone.cl) and **Comprala** (comprala.cl), the collector
+  uses the merchant's supported UCP/MCP interface (via its
+  `/.well-known/ucp` profile and the read-only `search_catalog` tool
+  declared in
   `https://ucp.dev/2026-08-25/services/shopping/mcp.openrpc.json`). That path
   requires a truthful, publicly hosted caller profile URL (see above).
-- DL Phone publishes a genuine UCP profile (MCP endpoint
-  `https://d8f7f8-76.myshopify.com/api/ucp/mcp`) and its robots.txt permits
-  the public product feed and UCP discovery; product URLs across both the
-  store domain and its Shopify backend domain are trusted. comprala.cl also
-  publishes a UCP profile and is a documented future candidate (pass
-  `--source https://comprala.cl`; product hosts would need a trusted-map
-  entry first).
+- DL Phone and Comprala publish genuine UCP profiles (MCP endpoints
+  `https://d8f7f8-76.myshopify.com/api/ucp/mcp` and
+  `https://comprala-cl.myshopify.com/api/ucp/mcp`); their robots.txt permits
+  the public product feed and UCP discovery, and product URLs across both
+  each store domain and its Shopify backend domain are trusted.
 - gsmpro.cl was ruled out for now: it did not respond to robots/ucp probes.
   Falabella, Paris and Knasta are marketplace aggregators intentionally not
   integrated (no robots-permitted public product feed and their own terms).

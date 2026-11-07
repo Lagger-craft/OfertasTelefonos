@@ -423,6 +423,17 @@ class SourceTrustTests(CollectorTestCase):
             with self.assertRaises(up.InvalidPayloadError, msg=bad):
                 up._trusted_product_url(bad, "https://dlphone.cl")
 
+    def test_comprala_product_url_is_trusted_across_its_hosts(self):
+        for url in ("https://comprala.cl/products/s23",
+                    "https://www.comprala.cl/products/s23",
+                    "https://comprala-cl.myshopify.com/products/s23"):
+            self.assertIsNotNone(
+                up._trusted_product_url(url, "https://comprala.cl"), msg=url)
+        for bad in ("http://comprala.cl/products/s23",
+                    "https://evil.example.com/products/s23"):
+            with self.assertRaises(up.InvalidPayloadError, msg=bad):
+                up._trusted_product_url(bad, "https://comprala.cl")
+
 
 # ---------------------------------------------------------------------------
 # S2 — UCP/MCP request parsing

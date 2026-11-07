@@ -5,14 +5,15 @@
     "within_max": 340000,
     "near_max": 370000
   },
-  "last_collected_at": "2026-11-07T23:02:43+00:00",
+  "last_collected_at": "2026-11-07T23:26:22+00:00",
   "snapshots": {
     "2026-W45": {
-      "collected_at": "2026-11-07T23:02:43+00:00",
+      "collected_at": "2026-11-07T23:26:22+00:00",
       "sources": {
         "https://reusecl.myshopify.com": "ok (public product JSON)",
         "https://bogedaoportunidades.myshopify.com": "ok (public product JSON)",
-        "https://dlphone.cl": "ok (public product JSON)"
+        "https://dlphone.cl": "ok (public product JSON)",
+        "https://comprala.cl": "ok (public product JSON)"
       },
       "offers": [
         {
