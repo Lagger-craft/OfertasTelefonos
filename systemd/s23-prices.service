@@ -1,0 +1,11 @@
+[Unit]
+Description=S23Precios daily refurbished Galaxy S23 price collection
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Proyectos/S23Precios
+# Optional: put UCP_AGENT_PROFILE_URL=... in ~/.config/s23precios/env to use
+# the supported UCP interface. Without it, the robots-permitted public
+# products.json fallback is used. That env file stays outside the project.
+EnvironmentFile=-%h/.config/s23precios/env
+ExecStart=/usr/bin/python3 scripts/update_prices.py

@@ -1,0 +1,4 @@
+__pycache__/
+*.py[cod]
+.browser-profile-*/
+.*-preview.png

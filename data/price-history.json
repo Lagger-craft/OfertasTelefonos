@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "budget": {
+    "currency": "CLP",
+    "within_max": 340000,
+    "near_max": 370000
+  },
+  "last_collected_at": "2026-11-07T23:02:43+00:00",
+  "snapshots": {
+    "2026-W45": {
+      "collected_at": "2026-11-07T23:02:43+00:00",
+      "sources": {
+        "https://reusecl.myshopify.com": "ok (public product JSON)",
+        "https://bogedaoportunidades.myshopify.com": "ok (public product JSON)",
+        "https://dlphone.cl": "ok (public product JSON)"
+      },
+      "offers": [
+        {
+          "key": "https://dlphone.cl#43406615773244",
+          "source": "https://dlphone.cl",
+          "model": "s23",
+          "model_code": null,
+          "processor": "Snapdragon 8 Gen 2 for Galaxy",
+          "title": "Samsung Galaxy S23 256Gb Verde Reacondicionado Verde",
+          "price": 349990,
+          "currency": "CLP",
+          "band": "near_budget",
+          "available": null,
+          "url": "https://dlphone.cl/products/samsung-galaxy-s23-256gb-verde-reacondicionado?variant=43406615773244"
+        },
+        {
+          "key": "https://reusecl.myshopify.com#48727742152921",
+          "source": "https://reusecl.myshopify.com",
+          "model": "s23",
+          "model_code": null,
+          "processor": "Snapdragon 8 Gen 2 for Galaxy",
+          "title": "Samsung Galaxy S23 128GB Negro Reacondicionado Con Detalles",
+          "price": 309990,
+          "currency": "CLP",
+          "band": "within_budget",
+          "available": null,
+          "url": "https://reusecl.myshopify.com/products/samsung-galaxy-s23-128gb-negro-reacondicionado-grado-b?variant=48727742152921"
+        },
+        {
+          "key": "https://reusecl.myshopify.com#49217303707865",
+          "source": "https://reusecl.myshopify.com",
+          "model": "s23",
+          "model_code": null,
+          "processor": "Snapdragon 8 Gen 2 for Galaxy",
+          "title": "Samsung Galaxy S23 256GB Verde Reacondicionado Con Detalles",
+          "price": 349990,
+          "currency": "CLP",
+          "band": "near_budget",
+          "available": null,
+          "url": "https://reusecl.myshopify.com/products/samsung-galaxy-s23-256gb-verde-con-detalles?variant=49217303707865"
+        }
+      ]
+    }
+  }
+}

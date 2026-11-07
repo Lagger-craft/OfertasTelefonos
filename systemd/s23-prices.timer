@@ -1,0 +1,12 @@
+[Unit]
+Description=Run S23Precios price collection daily
+
+[Timer]
+# Daily attempt: a failed day no longer loses the week, because re-running in
+# the same week replaces that week's current offer set.
+OnCalendar=*-*-* 09:45:00
+Persistent=true
+Unit=s23-prices.service
+
+[Install]
+WantedBy=timers.target
