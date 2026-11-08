@@ -154,9 +154,15 @@ Serve the folder over HTTP so the browser can fetch the JSON history file:
 ./start-website.sh
 ```
 
-That one-liner starts `python3 -m http.server 8000` and opens
+That one-liner starts `scripts/website_server.py` (loopback-only) and opens
 `http://localhost:8000/`. Opening `index.html` directly as `file://` blocks
 the data fetch in most browsers, and the page explains this when detected.
+
+The local server also exposes `POST /api/run-search`: the page's **BUSCAR
+AHORA** button runs `update_prices.py` against the configured sources, writes
+a fresh capture to `data/price-history.json` and re-renders the tables. It is
+a testing shortcut for the machine owner — nothing listens beyond
+127.0.0.1, and only one collection may run at a time.
 
 ## Tests
 

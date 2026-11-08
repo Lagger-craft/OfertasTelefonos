@@ -483,4 +483,34 @@ async function loadPriceHistory() {
   }
 }
 
+async function runSearchNow() {
+  const button = byId('run-search');
+  const status = byId('run-search-status');
+  if (!button || !status || button.disabled) return;
+  button.disabled = true;
+  status.textContent = 'Buscando ofertas en la última ronda de tiendas…';
+  try {
+    const response = await fetch('/api/run-search', { method: 'POST' });
+    const result = await response.json();
+    if (!result || typeof result.ok !== 'boolean') throw new Error('respuesta incompleta');
+    if (result.ok) {
+      status.textContent = `Búsqueda completada en ${result.duration_s} s. Actualizando la tabla…`;
+      await loadPriceHistory();
+      status.textContent = `Búsqueda completada en ${result.duration_s} s. La tabla abajo ya muestra la captura más reciente.`;
+    } else {
+      status.textContent = `La búsqueda falló (${result.exit_code == null ? 'sin respuesta del collector' : `código ${result.exit_code}`}). Detalle: ${result.tail || 'sin salida'}`;
+    }
+  } catch {
+    const onFileProtocol = window.location.protocol === 'file:';
+    status.textContent = onFileProtocol
+      ? 'Abri la web con ./start-website.sh: el buscador de la página sólo funciona servida en local (http://localhost:8000).'
+      : 'No se pudo ejecutar la búsqueda. Confirmá que el servidor local (start-website.sh) esté corriendo.';
+  } finally {
+    button.disabled = false;
+  }
+}
+
+const runSearchButton = byId('run-search');
+if (runSearchButton) runSearchButton.addEventListener('click', runSearchNow);
+
 loadPriceHistory();
