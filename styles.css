@@ -123,11 +123,15 @@ h1 { max-width: 640px; margin-bottom: 24px; font-size: clamp(38px, 5.8vw, 72px);
 .chart-gridline { stroke: #454565; stroke-width: 1; stroke-dasharray: 3 5; }
 .chart-axis-label { fill: var(--muted); font-size: 10px; }
 .chart-value-label { fill: var(--ink); font-size: 11px; }
-.chart-line-s23, .chart-line-fe { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.chart-line-s23, .chart-line-fe, .chart-line-s23-plus, .chart-line-s24-fe { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
 .chart-line-s23 { stroke: var(--mint); }
 .chart-line-fe { stroke: var(--violet); }
+.chart-line-s23-plus { stroke: var(--yellow); }
+.chart-line-s24-fe { stroke: #8ec5ff; }
 .chart-point-s23 { fill: var(--mint); stroke: var(--panel); stroke-width: 2; }
 .chart-point-fe { fill: var(--violet); stroke: var(--panel); stroke-width: 2; }
+.chart-point-s23-plus { fill: var(--yellow); stroke: var(--panel); stroke-width: 2; }
+.chart-point-s24-fe { fill: #8ec5ff; stroke: var(--panel); stroke-width: 2; }
 .histogram-bar { fill: var(--violet); }
 .histogram-bar-near { fill: var(--yellow); }
 .chart-empty { min-height: 160px; margin: 0; display: grid; place-items: center; color: var(--muted); text-align: center; font-size: 12px; line-height: 1.6; }
@@ -264,3 +268,10 @@ h1 { max-width: 640px; margin-bottom: 24px; font-size: clamp(38px, 5.8vw, 72px);
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Model comparison table (section 03) */
+.comparison-table .comparison-model { font-weight: 700; color: var(--ink-strong, #fff); display: block; }
+.comparison-table .comparison-chip { display: block; }
+.comparison-table .comparison-battery { font: 15px var(--mono); }
+.comparison-table .comparison-support { font-size: 12.5px; }
+.comparison-table .empty-row td { color: var(--muted); }

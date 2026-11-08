@@ -30,7 +30,7 @@
       <div class="hero-copy">
         <p class="eyebrow"><span class="pixel-star" aria-hidden="true">✦</span> RADAR DE PRECIOS · EDICIÓN CHILE</p>
         <h1 id="hero-title">Un Galaxy S<br>sin pagar de más<span class="title-cursor" aria-hidden="true">_</span></h1>
-        <p class="hero-lede">Comparamos el <strong>Galaxy S23</strong> y el <strong>S23 FE</strong> reacondicionados. Destacamos ofertas hasta <strong>$340.000 CLP</strong> y marcamos como cercanas las que llegan hasta <strong>$370.000</strong>.</p>
+        <p class="hero-lede">Comparamos los <strong>Galaxy S23</strong>, <strong>S23+</strong>, <strong>S23 FE</strong> y <strong>S24 FE</strong> reacondicionados. El tope de compra y el monto hasta donde querés estirar el bolsillo los configurás vos; mirá los valores actuales en la franja de presupuesto.</p>
         <a class="button button-primary" href="#ofertas">VER LAS OFERTAS <span aria-hidden="true">↓</span></a>
         <p class="fine-print">Precios referenciales: pueden cambiar o agotarse.</p>
       </div>
@@ -50,11 +50,17 @@
     </section>
 
     <section class="price-strip" aria-label="Resumen del presupuesto">
-      <div><span class="strip-label">TOPE DE COMPRA</span><strong>$340.000</strong><span class="strip-unit">CLP</span></div>
+      <div><span class="strip-label">TOPE DE COMPRA</span><strong id="strip-within">—</strong><span class="strip-unit">CLP</span></div>
+      <span class="strip-divider" aria-hidden="true"></span>
+      <div><span class="strip-label">TOPE ESTIRADO</span><strong id="strip-near">—</strong><span class="strip-unit">CLP</span></div>
       <span class="strip-divider" aria-hidden="true"></span>
       <div><span class="strip-label">MEJOR PRECIO S23 FE</span><strong id="best-fe-price" class="green-text">—</strong></div>
       <span class="strip-divider" aria-hidden="true"></span>
       <div><span class="strip-label">MEJOR PRECIO S23</span><strong id="best-s23-price" class="green-text">—</strong></div>
+      <span class="strip-divider" aria-hidden="true"></span>
+      <div><span class="strip-label">MEJOR PRECIO S23+</span><strong id="best-s23-plus-price" class="green-text">—</strong></div>
+      <span class="strip-divider" aria-hidden="true"></span>
+      <div><span class="strip-label">MEJOR PRECIO S24 FE</span><strong id="best-s24-fe-price" class="green-text">—</strong></div>
       <span id="price-update-status" class="strip-note" aria-live="polite">Todavía no hay una captura semanal publicada.</span>
     </section>
 
@@ -66,6 +72,8 @@
       <div class="tabs" role="tablist" aria-label="Filtrar por modelo">
         <button class="tab is-active" id="tab-fe" role="tab" aria-selected="true" aria-controls="panel-fe" tabindex="0" data-model="fe">S23 FE <span class="tab-count" id="count-fe">00</span></button>
         <button class="tab" id="tab-s23" role="tab" aria-selected="false" aria-controls="panel-s23" tabindex="-1" data-model="s23">S23 NORMAL <span class="tab-count" id="count-s23">00</span></button>
+        <button class="tab" id="tab-s23-plus" role="tab" aria-selected="false" aria-controls="panel-s23-plus" tabindex="-1" data-model="s23_plus">S23+ <span class="tab-count" id="count-s23-plus">00</span></button>
+        <button class="tab" id="tab-s24-fe" role="tab" aria-selected="false" aria-controls="panel-s24-fe" tabindex="-1" data-model="s24_fe">S24 FE <span class="tab-count" id="count-s24-fe">00</span></button>
       </div>
 
       <div class="deal-panel is-active" id="panel-fe" role="tabpanel" aria-labelledby="tab-fe" tabindex="0" data-panel="fe">
@@ -75,7 +83,7 @@
             <tbody id="offers-fe"><tr class="empty-row"><td colspan="4">Todavía no hay ofertas en el historial. La lista se llena después de publicar y ejecutar la primera búsqueda.</td></tr></tbody>
           </table>
         </div>
-        <p class="panel-footnote"><span aria-hidden="true">※</span> Los precios corresponden a la última captura semanal, no garantizan stock actual. Verifica la variante y las condiciones en la ficha de la tienda.</p>
+        <p class="panel-footnote"><span aria-hidden="true">※</span> Los precios corresponden a la última captura semanal, no garantizan stock actual. Verifica la variante y las condiciones en la ficha de la tienda. Soporte Samsung: 4 años de OS y 5 de seguridad desde feb 2023 (seguridad hasta feb 2028).</p>
       </div>
 
       <div class="deal-panel" id="panel-s23" role="tabpanel" aria-labelledby="tab-s23" tabindex="0" data-panel="s23" hidden>
@@ -85,7 +93,27 @@
             <tbody id="offers-s23"><tr class="empty-row"><td colspan="4">Todavía no hay ofertas en el historial. La lista se llena después de publicar y ejecutar la primera búsqueda.</td></tr></tbody>
           </table>
         </div>
-        <p class="panel-footnote"><span aria-hidden="true">※</span> Los precios corresponden a la última captura semanal, no garantizan stock actual. Verifica la variante, la salud de batería y las condiciones en la ficha de la tienda.</p>
+        <p class="panel-footnote"><span aria-hidden="true">※</span> Los precios corresponden a la última captura semanal, no garantizan stock actual. Verifica la variante, la salud de batería y las condiciones en la ficha de la tienda. Soporte Samsung: 4 años de OS y 5 de seguridad desde feb 2023 (seguridad hasta feb 2028).</p>
+      </div>
+
+      <div class="deal-panel" id="panel-s23-plus" role="tabpanel" aria-labelledby="tab-s23-plus" tabindex="0" data-panel="s23_plus" hidden>
+        <div class="table-scroll">
+          <table class="deal-table">
+            <thead><tr><th scope="col">TIENDA / OFERTA</th><th scope="col">PRECIO</th><th scope="col">QUÉ DEBES SABER</th><th scope="col"><span class="sr-only">Enlace</span></th></tr></thead>
+            <tbody id="offers-s23-plus"><tr class="empty-row"><td colspan="4">Todavía no hay ofertas en el historial. La lista se llena después de publicar y ejecutar la primera búsqueda.</td></tr></tbody>
+          </table>
+        </div>
+        <p class="panel-footnote"><span aria-hidden="true">※</span> Los precios corresponden a la última captura semanal, no garantizan stock actual. El S23+ mantiene el Snapdragon 8 Gen 2 con pantalla más grande; verifica la variante y las condiciones en la ficha de la tienda. Soporte Samsung: 4 años de OS y 5 de seguridad desde feb 2023 (seguridad hasta feb 2028).</p>
+      </div>
+
+      <div class="deal-panel" id="panel-s24-fe" role="tabpanel" aria-labelledby="tab-s24-fe" tabindex="0" data-panel="s24_fe" hidden>
+        <div class="table-scroll">
+          <table class="deal-table">
+            <thead><tr><th scope="col">TIENDA / OFERTA</th><th scope="col">PRECIO</th><th scope="col">QUÉ DEBES SABER</th><th scope="col"><span class="sr-only">Enlace</span></th></tr></thead>
+            <tbody id="offers-s24-fe"><tr class="empty-row"><td colspan="4">Todavía no hay ofertas en el historial. La lista se llena después de publicar y ejecutar la primera búsqueda.</td></tr></tbody>
+          </table>
+        </div>
+        <p class="panel-footnote"><span aria-hidden="true">※</span> Los precios corresponden a la última captura semanal, no garantizan stock actual. El S24 FE trae Exynos 2400e y más años de actualizaciones; verifica la variante y las condiciones en la ficha de la tienda. Soporte Samsung: 7 años de OS y de seguridad desde sep 2024 (seguridad hasta sep 2031).</p>
       </div>
     </section>
 
@@ -125,8 +153,15 @@
 
     <section class="processors section-wrap" id="procesadores" aria-labelledby="processor-title">
       <div class="section-heading">
-        <div><p class="eyebrow">03 / VARIANTES Y RENDIMIENTO</p><h2 id="processor-title">S23 o S23 FE: ojo con el chip<span class="heading-dot">.</span></h2></div>
-        <p>En reacondicionados importados, el nombre “S23 FE” no alcanza: revisá el código de modelo para saber qué procesador trae.</p>
+        <div><p class="eyebrow">03 / COMPARACIÓN DE MODELOS</p><h2 id="processor-title">S23, S23+, S23 FE y S24 FE: lado a lado<span class="heading-dot">.</span></h2></div>
+        <p>La tabla apila los cuatro modelos competidos con su chip, batería y ventana de soporte. En reacondicionados importados, el nombre “S23 FE” no alcanza: revisá el código de modelo para saber qué procesador trae.</p>
+      </div>
+      <div class="table-scroll comparison-table-wrap">
+        <table class="deal-table comparison-table" id="model-comparison">
+          <thead><tr><th scope="col">MODELO</th><th scope="col">PROCESADOR</th><th scope="col">BATERÍA</th><th scope="col">SEGURIDAD HASTA</th><th scope="col">MEJOR PRECIO ACTUAL</th></tr></thead>
+          <tbody id="model-comparison-body"><tr class="empty-row"><td colspan="5">Se llena cuando la página lee la última captura de precios.</td></tr></tbody>
+        </table>
+        <p class="panel-footnote"><span aria-hidden="true">※</span> Capacidad de batería es la ficha original de fábrica; en un reacondicionado la salud real puede variar. La columna “mejor precio actual” refleja la última captura semanal.</p>
       </div>
       <div class="chip-grid">
         <article class="chip-card chip-card-featured">
@@ -176,7 +211,7 @@
         <article class="check-card"><span class="check-number">01</span><h3>Batería y estado</h3><p>Pregunta por la salud de batería o si fue reemplazada. Pide fotos reales y el detalle del grado estético; “Excelente” o “Grade A” no tienen un estándar único.</p></article>
         <article class="check-card"><span class="check-number">02</span><h3>Garantía y devolución</h3><p>Confirma quién responde, por cuántos meses, qué cubre y cómo funciona el retracto. En marketplace importa también quién es el vendedor real.</p></article>
         <article class="check-card"><span class="check-number">03</span><h3>Redes y región</h3><p>Si viene de EE. UU., consulta el modelo exacto, bandas 4G/5G, eSIM y bloqueo de operador. “Desbloqueado” debe confirmarse para Chile.</p></article>
-        <article class="check-card"><span class="check-number">04</span><h3>Precio final</h3><p>Revisa despacho, impuestos si corresponde, accesorios incluidos y que el precio siga bajo $340.000 al llegar al pago. Las ofertas pueden agotarse.</p></article>
+        <article class="check-card"><span class="check-number">04</span><h3>Precio final</h3><p>Revisa despacho, impuestos si corresponde, accesorios incluidos y que el precio siga debajo de tu tope configurado al llegar al pago. Las ofertas pueden agotarse.</p></article>
       </div>
     </section>
 

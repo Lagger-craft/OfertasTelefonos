@@ -78,7 +78,10 @@ function safeOfferUrl(offer) {
 }
 
 function offerModelLabel(model) {
-  return model === 's23_fe' ? 'Galaxy S23 FE' : 'Galaxy S23';
+  if (model === 's23_fe') return 'Galaxy S23 FE';
+  if (model === 's23_plus') return 'Galaxy S23+';
+  if (model === 's24_fe') return 'Galaxy S24 FE';
+  return 'Galaxy S23';
 }
 
 function makeCell(label) {
@@ -87,7 +90,7 @@ function makeCell(label) {
   return cell;
 }
 
-function createOfferRow(offer, index) {
+function createOfferRow(offer, index, budget) {
   const row = document.createElement('tr');
   if (index === 0) row.classList.add('best-deal');
 
@@ -107,10 +110,11 @@ function createOfferRow(offer, index) {
   const price = document.createElement('span');
   price.className = 'price';
   price.textContent = core.formatCLP(offer.price);
+  const caps = budget || { within_max: core.WITHIN_BUDGET_MAX, near_max: core.NEAR_BUDGET_MAX };
   const tag = document.createElement('span');
   tag.className = offer.band === 'near_budget' ? 'price-tag price-tag-warn' : 'price-tag';
   tag.textContent = offer.band === 'near_budget'
-    ? `CERCA DEL TOPE · +${core.formatCLP(offer.price - core.WITHIN_BUDGET_MAX)}`
+    ? `CERCA DEL TOPE · +${core.formatCLP(offer.price - caps.within_max)}`
     : index === 0 ? 'MEJOR PRECIO EN ESTA LISTA' : 'DENTRO DEL TOPE';
   priceCell.append(price, tag);
 
@@ -126,7 +130,22 @@ function createOfferRow(offer, index) {
   const battery = document.createElement('span');
   battery.className = 'store-sub';
   battery.textContent = 'Salud de batería no informada en la ficha';
-  detailCell.append(model, availability, battery);
+  const updatesMonths = core.updateMonthsLeft(offer.model);
+  const supportMeta = core.MODEL_UPDATE_SUPPORT[offer.model];
+  if (supportMeta && updatesMonths !== null) {
+    const updates = document.createElement('span');
+    updates.className = 'store-sub';
+    const untilDate = new Date(`${supportMeta.security_until}-01T00:00:00`);
+    const untilLabel = new Intl.DateTimeFormat('es-CL', {
+      year: 'numeric', month: 'short', timeZone: 'America/Santiago',
+    }).format(untilDate);
+    updates.textContent = updatesMonths > 0
+      ? `Actualizaciones de seguridad: hasta ${untilLabel} (${updatesMonths} ${updatesMonths === 1 ? 'mes' : 'meses'})`
+      : 'Ventana de seguridad del fabricante finalizada';
+    detailCell.append(model, availability, updates, battery);
+  } else {
+    detailCell.append(model, availability, battery);
+  }
 
   const linkCell = makeCell('Enlace');
   const href = safeOfferUrl(offer);
@@ -150,8 +169,15 @@ function createOfferRow(offer, index) {
   return row;
 }
 
-function renderOfferTable(model, offers) {
-  const tbody = byId(model === 's23_fe' ? 'offers-fe' : 'offers-s23');
+const OFFER_TABLE_IDS = {
+  s23_fe: 'offers-fe',
+  s23: 'offers-s23',
+  s23_plus: 'offers-s23-plus',
+  s24_fe: 'offers-s24-fe',
+};
+
+function renderOfferTable(model, offers, budget) {
+  const tbody = byId(OFFER_TABLE_IDS[model] || '');
   if (!tbody) return;
   tbody.replaceChildren();
   const matching = offers.filter((offer) => offer.model === model);
@@ -160,12 +186,13 @@ function renderOfferTable(model, offers) {
     row.className = 'empty-row';
     const cell = document.createElement('td');
     cell.colSpan = 4;
-    cell.textContent = 'No hay ofertas reacondicionadas en el rango de hasta $370.000 en la última captura.';
+    const caps = budget || { within_max: core.WITHIN_BUDGET_MAX, near_max: core.NEAR_BUDGET_MAX };
+    cell.textContent = `No hay ofertas reacondicionadas debajo del tope configurado (${core.formatCLP(caps.near_max)}) en la última captura.`;
     row.append(cell);
     tbody.append(row);
     return;
   }
-  matching.forEach((offer, index) => tbody.append(createOfferRow(offer, index)));
+  matching.forEach((offer, index) => tbody.append(createOfferRow(offer, index, budget)));
 }
 
 function formatSnapshotDate(value) {
@@ -177,12 +204,23 @@ function formatSnapshotDate(value) {
   }).format(date);
 }
 
-function renderPriceSummary(history, offers) {
+const COUNT_IDS = {
+  s23_fe: 'count-fe',
+  s23: 'count-s23',
+  s23_plus: 'count-s23-plus',
+  s24_fe: 'count-s24-fe',
+};
+
+function renderPriceSummary(history, offers, budget) {
   const comparison = core.compareModelPrices(offers);
-  setText('best-fe-price', comparison.s23_fe ? core.formatCLP(comparison.s23_fe.price) : '—');
-  setText('best-s23-price', comparison.s23 ? core.formatCLP(comparison.s23.price) : '—');
-  setText('count-fe', String(offers.filter((offer) => offer.model === 's23_fe').length).padStart(2, '0'));
-  setText('count-s23', String(offers.filter((offer) => offer.model === 's23').length).padStart(2, '0'));
+  for (const key of ['s23_fe', 's23', 's23_plus', 's24_fe']) {
+    const bestId = key === 's23_fe' ? 'best-fe-price' : `best-${key.replace('_', '-')}-price`;
+    setText(bestId, comparison[key] ? core.formatCLP(comparison[key].price) : '—');
+    setText(COUNT_IDS[key], String(offers.filter((offer) => offer.model === key).length).padStart(2, '0'));
+  }
+  const caps = budget || core.budgetFor(history);
+  setText('strip-within', core.formatCLP(caps.within_max));
+  setText('strip-near', core.formatCLP(caps.near_max));
 
   const snapshot = core.latestSnapshot(history);
   if (!snapshot) {
@@ -198,20 +236,84 @@ function renderPriceSummary(history, offers) {
     : freshness);
 }
 
+function securityUntilLabel(securityUntil) {
+  const date = new Date(`${securityUntil}-01T00:00:00`);
+  return new Intl.DateTimeFormat('es-CL', {
+    year: 'numeric', month: 'long', timeZone: 'America/Santiago',
+  }).format(date);
+}
+
+function renderModelComparison(comparison) {
+  const tbody = byId('model-comparison-body');
+  if (!tbody) return;
+  tbody.replaceChildren();
+  for (const model of core.MODELS_ORDER || ['s23_fe', 's23', 's23_plus', 's24_fe']) {
+    const spec = (core.MODEL_SPECS || {})[model];
+    if (!spec) continue;
+    const row = document.createElement('tr');
+    const modelCell = makeCell('Modelo');
+    const name = document.createElement('span');
+    name.className = 'comparison-model';
+    name.textContent = offerModelLabel(model);
+    modelCell.append(name);
+    const chipCell = makeCell('Procesador');
+    const chip = document.createElement('span');
+    chip.className = 'comparison-chip';
+    chip.textContent = spec.chip_variants.map((variant) => variant.chip).join(' · ');
+    chipCell.append(chip);
+    if (spec.chip_variants.some((variant) => variant.region !== 'todas las regiones')) {
+      const variants = document.createElement('span');
+      variants.className = 'store-sub';
+      variants.textContent = spec.chip_variants
+        .map((variant) => `${variant.chip} (${variant.region})`)
+        .join(' · ');
+      chipCell.append(variants);
+    }
+    const batteryCell = makeCell('Batería');
+    const battery = document.createElement('span');
+    battery.className = 'comparison-battery';
+    battery.textContent = `${new Intl.NumberFormat('es-CL').format(spec.battery_mah)} mAh`;
+    batteryCell.append(battery);
+    const supportCell = makeCell('Seguridad hasta');
+    const support = document.createElement('span');
+    support.className = 'comparison-support';
+    support.textContent = securityUntilLabel(spec.security_until);
+    supportCell.append(support);
+    const priceCell = makeCell('Mejor precio actual');
+    const best = comparison && comparison[model];
+    if (best) {
+      const price = document.createElement('span');
+      price.className = 'price green-text';
+      price.textContent = core.formatCLP(best.price);
+      priceCell.append(price);
+    } else {
+      priceCell.textContent = 'Sin ofertas en la última captura';
+    }
+    row.append(modelCell, chipCell, batteryCell, supportCell, priceCell);
+    tbody.append(row);
+  }
+}
+
 function renderPriceAdvice(offers) {
-  const { s23, s23_fe: fe, s23Premium } = core.compareModelPrices(offers);
-  if (!s23 && !fe) {
-    setText('price-advice', 'Cuando haya precios actuales, compararemos el menor de cada modelo. En general, el S23 favorece potencia y eficiencia; el S23 FE puede convenir si cuesta bastante menos y su batería está en buen estado.');
+  const comparison = core.compareModelPrices(offers);
+  const { s23, s23_fe: fe, s23Premium } = comparison;
+  const premiumPair = comparison.s23_plus;
+  const fe24 = comparison.s24_fe;
+  if (!s23 && !fe && !premiumPair && !fe24) {
+    setText('price-advice', 'Cuando haya precios actuales, compararemos el menor de cada modelo. En general, el S23 y el S23+ favorecen potencia y eficiencia; el S23 FE y el S24 FE pueden convenir si cuestan bastante menos y su batería está en buen estado.');
     return;
   }
+  const bestParts = [premiumPair, s23, fe, fe24]
+    .filter(Boolean)
+    .sort((a, b) => a.price - b.price)
+    .map((offer) => `${offerModelLabel(offer.model)} a ${core.formatCLP(offer.price)}`);
+  let text = `Mejores precios de la última captura: ${bestParts.join('; ')}.`;
   if (s23 && fe) {
     const difference = Math.abs(s23Premium);
     const relation = s23Premium > 0 ? 'más caro' : s23Premium < 0 ? 'más barato' : 'al mismo precio';
-    setText('price-advice', `En la última captura, el S23 está ${relation} que el S23 FE por ${core.formatCLP(difference)}. El S23 tiene una plataforma más nueva y potente; el FE puede ser mejor valor si la diferencia de precio compensa y el vendedor confirma una batería saludable.`);
-    return;
+    text += ` El S23 está ${relation} que el S23 FE por ${core.formatCLP(difference)}: la plataforma más potente compensa si la diferencia es chica, mientras que el FE puede ser mejor valor con batería saludable.`;
   }
-  const only = s23 || fe;
-  setText('price-advice', `La última captura sólo tiene ofertas del ${offerModelLabel(only.model)} (${core.formatCLP(only.price)} como menor precio). Para elegir valor frente al otro modelo hace falta que aparezca también en el historial.`);
+  setText('price-advice', text);
 }
 
 function svgElement(name, attributes = {}, text = null) {
@@ -236,7 +338,8 @@ function drawTrend(history) {
   const empty = byId('trend-empty');
   if (!svg || !empty) return;
   const trend = core.buildPriceTrend(history);
-  const allValues = [...trend.series.s23, ...trend.series.s23_fe].filter(Number.isFinite);
+  const allValues = [...trend.series.s23, ...trend.series.s23_fe,
+    ...trend.series.s23_plus, ...trend.series.s24_fe].filter(Number.isFinite);
   if (!trend.weeks.length || !allValues.length) {
     svg.hidden = true;
     empty.hidden = false;
@@ -245,7 +348,7 @@ function drawTrend(history) {
   svg.hidden = false;
   empty.hidden = true;
   resetSvg(svg, 'trend-svg-title', 'trend-svg-desc',
-    `Menor precio semanal observado para Galaxy S23 y S23 FE durante ${trend.weeks.length} semanas. Valores en pesos chilenos.`);
+    `Menor precio semanal observado para Galaxy S23, S23+, S23 FE y S24 FE durante ${trend.weeks.length} semanas. Valores en pesos chilenos.`);
 
   const width = 720;
   const height = 280;
@@ -271,6 +374,8 @@ function drawTrend(history) {
   const seriesInfo = [
     { key: 's23', className: 'chart-line-s23', pointClass: 'chart-point-s23' },
     { key: 's23_fe', className: 'chart-line-fe', pointClass: 'chart-point-fe' },
+    { key: 's23_plus', className: 'chart-line-s23-plus', pointClass: 'chart-point-s23-plus' },
+    { key: 's24_fe', className: 'chart-line-s24-fe', pointClass: 'chart-point-s24-fe' },
   ];
   for (const info of seriesInfo) {
     let segment = [];
@@ -304,11 +409,11 @@ function drawTrend(history) {
   });
 }
 
-function drawHistogram(offers) {
+function drawHistogram(offers, budget) {
   const svg = byId('histogram-chart');
   const empty = byId('histogram-empty');
   if (!svg || !empty) return;
-  const bins = core.buildPriceHistogram(offers);
+  const bins = core.buildPriceHistogram(offers, budget);
   const total = bins.reduce((sum, bin) => sum + bin.count, 0);
   if (!total) {
     svg.hidden = true;
@@ -348,13 +453,17 @@ function drawHistogram(offers) {
 
 function renderDashboard(history) {
   if (!core) throw new Error('No se pudo cargar el módulo de precios.');
+  const budget = core.budgetFor(history);
   const offers = core.currentOffers(history);
-  renderOfferTable('s23_fe', offers);
-  renderOfferTable('s23', offers);
-  renderPriceSummary(history, offers);
+  renderOfferTable('s23_fe', offers, budget);
+  renderOfferTable('s23', offers, budget);
+  renderOfferTable('s23_plus', offers, budget);
+  renderOfferTable('s24_fe', offers, budget);
+  renderPriceSummary(history, offers, budget);
   renderPriceAdvice(offers);
+  renderModelComparison(core.compareModelPrices(offers));
   drawTrend(history);
-  drawHistogram(offers);
+  drawHistogram(offers, budget);
 }
 
 async function loadPriceHistory() {
