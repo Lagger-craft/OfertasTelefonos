@@ -234,15 +234,51 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(up.detect_model("Samsung Galaxy S23FE"), "s23_fe")
         self.assertEqual(up.detect_model("galaxy s23 fe"), "s23_fe")
 
+        self.assertEqual(up.detect_model("Samsung Galaxy S23+ 256GB"), "s23_plus")
+        self.assertEqual(up.detect_model("Samsung Galaxy S24 FE 128GB"), "s24_fe")
+        self.assertEqual(up.detect_model("galaxy s24 fe"), "s24_fe")
+
     def test_detect_model_excludes_other_models(self):
         for title in (
             "Samsung Galaxy S23 Ultra 512GB",
-            "Samsung Galaxy S23+ 256GB",
+            "Samsung Galaxy S24 256GB",
+            "Samsung Galaxy S24 Ultra 1TB",
+            "Samsung Galaxy S24+ 256GB",
             "Samsung Galaxy S22 128GB",
             "Samsung Galaxy A54",
             "Galaxy Watch 6",
         ):
             self.assertIsNone(up.detect_model(title), msg=title)
+
+    def test_processor_mapping_of_new_models(self):
+        code, proc = up.model_code_and_processor(
+            "Samsung Galaxy S23+ SM-S916B 256GB Reacondicionado", "s23_plus")
+        self.assertEqual(code, "SM-S916B")
+        self.assertEqual(proc, "Snapdragon 8 Gen 2 for Galaxy")
+        code, proc = up.model_code_and_processor("Galaxy S24 FE SM-S721B", "s24_fe")
+        self.assertEqual(code, "SM-S721B")
+        self.assertEqual(proc, "Exynos 2400e")
+
+    def test_default_queries_cover_all_requested_models(self):
+        joined = " ".join(up.DEFAULT_QUERIES).lower()
+        self.assertIn("s23", joined)
+        self.assertIn("s23 fe", joined)
+        self.assertIn("s23 plus", joined)
+        self.assertIn("s24 fe", joined)
+        self.assertGreaterEqual(len(up.DEFAULT_QUERIES), 4)
+
+    def test_price_band_accepts_custom_budget(self):
+        self.assertEqual(up.price_band(310000, 300000, 320000), up.BAND_NEAR)
+        self.assertEqual(up.price_band(320001, 300000, 320000), up.BAND_EXCLUDED)
+
+    def test_normalize_offer_uses_custom_budget(self):
+        rec = up.normalize_offer(
+            {"title": "Samsung Galaxy S23 Reacondicionado", "price": 310000, "id": "b1"},
+            REUSE_ROOT, budget=(300000, 320000))
+        self.assertEqual(rec["band"], up.BAND_NEAR)
+        self.assertIsNone(up.normalize_offer(
+            {"title": "Samsung Galaxy S23 Reacondicionado", "price": 320001, "id": "b2"},
+            REUSE_ROOT, budget=(300000, 320000)))
 
     def test_refurbished_markers_are_clearly_refurbished(self):
         self.assertTrue(up.is_refurbished("Samsung Galaxy S23 Reacondicionado"))
@@ -850,6 +886,111 @@ class SnapshotHistoryTests(CollectorTestCase):
         self.assertNotIn("2023-W52", snapshots)
 
 
+class BudgetConfigTests(CollectorTestCase):
+    """S4/S5: the buyer sets the price cap and the stretch band themselves."""
+
+    def test_invalid_budget_fails_before_network_and_history(self):
+        def fail_transport(*args, **kwargs):
+            raise AssertionError("no request should happen for an invalid budget")
+
+        with mock.patch.object(up, "http_request", side_effect=fail_transport):
+            for budget in ((0, 1000), (-5, 100), (370000, 370000), (370000, 340000)):
+                with self.subTest(budget=budget):
+                    with self.assertRaises(up.UpdatePricesError, msg=budget):
+                        up.run_collection(str(self.history_path), budget=budget)
+        self.assertFalse(os.path.exists(self.history_path))
+
+    def test_custom_budget_drives_band_and_history_budget(self):
+        budget = (300000, 320000)
+        item = {"id": "n1", "handle": "n1",
+                "title": "Samsung Galaxy S23 Reacondicionado",
+                "price": "310000",
+                "variants": [{"id": 7300800052243, "price": "310000"}],
+                "url": "https://reusecl.myshopify.com/products/n1"}
+
+        def router(method, url, headers=None, body=None):
+            return up.HttpResponse(200, {"content-type": "application/json"},
+                                   json.dumps({"products": [item]}).encode())
+
+        os.environ.pop(up.PROFILE_ENV_VAR, None)
+        with mock.patch.object(up, "http_request", side_effect=router), \
+             redirect_stdout(StringIO()):
+            summary = up.run_collection(str(self.history_path), sources=(REUSE_ROOT,),
+                                        profile=None, budget=budget,
+                                        now=FIXED_NOW)
+        self.assertEqual(summary["budget"], budget)
+        stored = json.loads(open(self.history_path, encoding="utf-8").read())
+        self.assertEqual(stored["budget"], {"currency": "CLP",
+                                            "within_max": 300000,
+                                            "near_max": 320000})
+        self.assertEqual(stored["snapshots"][WEEK]["offers"][0]["band"], up.BAND_NEAR)
+
+    def test_budget_env_fallback_and_cli_override(self):
+        self.assertEqual(up.budget_from_options(None, None, {}) , up.DEFAULT_BUDGET)
+        self.assertEqual(
+            up.budget_from_options(None, None,
+                                   {up.WITHIN_MAX_ENV: "300000",
+                                    up.NEAR_MAX_ENV: "320000"}),
+            up.Budget(300000, 320000))
+        self.assertEqual(
+            up.budget_from_options("31000", "33000",
+                                   {up.WITHIN_MAX_ENV: "300000",
+                                    up.NEAR_MAX_ENV: "320000"}),
+            up.Budget(31000, 33000))
+        with self.assertRaises(up.UpdatePricesError):
+            up.budget_from_options("abc", None, {})
+
+    def test_cli_accepts_budget_flags(self):
+        parser = up.build_parser()
+        args = parser.parse_args(["--within-max", "300000", "--near-max", "320000"])
+        self.assertEqual(args.within_max, 300000)
+        self.assertEqual(args.near_max, 320000)
+
+
+class ModelsOptionTests(CollectorTestCase):
+    """The buyer picks which tracked phones to search for (default: all four)."""
+
+    def test_models_option_resolution_and_validation(self):
+        self.assertEqual(up.models_from_options(None, {}), up.TRACKED_MODELS)
+        self.assertEqual(up.models_from_options("s23", {}), ("s23",))
+        self.assertEqual(
+            up.models_from_options("s23_plus", {"S23_MODELS": "s23,s24_fe"}),
+            ("s23_plus",))
+        self.assertEqual(
+            up.models_from_options(None, {"S23_MODELS": "s24_fe, s23"}),
+            ("s24_fe", "s23"))
+        for bad in ("s97_ultra", "s24_inches", "", ","):
+            with self.subTest(bad=bad):
+                with self.assertRaises(up.UpdatePricesError):
+                    up.models_from_options(bad, {})
+
+    def test_run_collection_filters_to_selected_models(self):
+        items = [
+            {"id": "f1", "handle": "f1", "title": "Samsung Galaxy S23 Reacondicionado",
+             "variants": [{"id": 7300800099871, "price": "310000"}]},
+            {"id": "f2", "handle": "f2", "title": "Galaxy S23+ SM-S916B Reacondicionado",
+             "variants": [{"id": 7300800099872, "price": "420000"}]},
+            {"id": "f3", "handle": "f3", "title": "Galaxy S24 FE SM-S721B Reacondicionado",
+             "variants": [{"id": 7300800099873, "price": "330000"}]},
+        ]
+        self.write_history(initial_history())
+
+        def router(method, url, headers=None, body=None):
+            return up.HttpResponse(200, {"content-type": "application/json"},
+                                   json.dumps({"products": items}).encode())
+
+        os.environ.pop(up.PROFILE_ENV_VAR, None)
+        with mock.patch.object(up, "http_request", side_effect=router), \
+             redirect_stdout(StringIO()) as _:
+            summary = up.run_collection(str(self.history_path), sources=(REUSE_ROOT,),
+                                        profile=None, models=("s23",),
+                                        now=FIXED_NOW)
+        self.assertEqual(summary["models"], ("s23",))
+        snapshot = self.read_json()["snapshots"][WEEK]
+        self.assertEqual({o["model"] for o in snapshot["offers"]}, {"s23"})
+        self.assertEqual(summary["offer_count"], 1)
+
+
 class MainCliTests(CollectorTestCase):
     def freeze_clock(self):
         class FrozenDatetime:
@@ -907,8 +1048,10 @@ class MainCliTests(CollectorTestCase):
                    and json.loads(call["body"]).get("method") == "tools/call"]
         offers = self.read_json()["snapshots"][WEEK]["offers"]
         self.assertEqual(queries, ["Samsung Galaxy S23 reacondicionado",
-                                   "Samsung Galaxy S23 FE reacondicionado"])
-        self.assertEqual({offer["model"] for offer in offers}, {"s23", "s23_fe"})
+                                   "Samsung Galaxy S23 FE reacondicionado",
+                                   "Samsung Galaxy S23 Plus reacondicionado",
+                                   "Samsung Galaxy S24 FE reacondicionado"])
+        self.assertIn("s23", {offer["model"] for offer in offers})
         self.assertEqual(summary["offer_count"], 2)
 
 

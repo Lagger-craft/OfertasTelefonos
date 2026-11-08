@@ -57,11 +57,30 @@ SEARCH_TOOL = "search_catalog"
 DEFAULT_QUERIES = (
     "Samsung Galaxy S23 reacondicionado",
     "Samsung Galaxy S23 FE reacondicionado",
+    "Samsung Galaxy S23 Plus reacondicionado",
+    "Samsung Galaxy S24 FE reacondicionado",
 )
 DEFAULT_QUERY = DEFAULT_QUERIES[0]  # kept for the existing single-query --query option
+TRACKED_MODELS = ("s23", "s23_fe", "s23_plus", "s24_fe")
+MODELS_ENV = "S23_MODELS"
+MODELS_ENV_HELP = "comma-separated tracked model keys, e.g. s23,s24_fe"
 
 BUDGET_WITHIN_CLP = 340000
 BUDGET_NEAR_CLP = 370000
+WITHIN_MAX_ENV = "S23_WITHIN_MAX"
+NEAR_MAX_ENV = "S23_NEAR_MAX"
+BUDGET_CURRENCY = "CLP"
+
+
+class Budget(NamedTuple):
+    """Buyer-configurable price bands: base cap and stretch band."""
+
+    within_max: int
+    near_max: int
+
+
+DEFAULT_BUDGET = Budget(BUDGET_WITHIN_CLP, BUDGET_NEAR_CLP)
+ACTIVE_BUDGET: Budget = DEFAULT_BUDGET
 BAND_WITHIN = "within_budget"
 BAND_NEAR = "near_budget"
 BAND_EXCLUDED = "excluded"
@@ -215,22 +234,96 @@ def parse_price(value: Any) -> int | None:
     return price if price > 0 else None
 
 
-def price_band(price: int) -> str:
+def price_band(price: int, within_max: int | None = None,
+               near_max: int | None = None) -> str:
     if not isinstance(price, int) or isinstance(price, bool) or price <= 0:
         raise ValueError(f"invalid price: {price!r}")
-    if price <= BUDGET_WITHIN_CLP:
+    within = (ACTIVE_BUDGET.within_max if within_max is None
+              else int(within_max))
+    near = (ACTIVE_BUDGET.near_max if near_max is None
+            else int(near_max))
+    if price <= within:
         return BAND_WITHIN
-    if price <= BUDGET_NEAR_CLP:
+    if price <= near:
         return BAND_NEAR
     return BAND_EXCLUDED
 
 
+def models_from_options(raw: Any, env: dict | None = None) -> tuple[str, ...]:
+    """Resolve the tracked-model selection: CLI value > env > all four.
+
+    Values are comma-separated tracked model keys. Unknown keys (or an empty
+    selection) raise UpdatePricesError before any network request or history
+    write.
+    """
+    env = env or {}
+    raw_value = raw if raw is not None else env.get(MODELS_ENV)
+    if raw_value is None:
+        return TRACKED_MODELS
+    if isinstance(raw_value, str):
+        selected = tuple(part.strip() for part in raw_value.split(",") if part.strip())
+    else:
+        selected = tuple(raw_value)
+    unknown = [key for key in selected if not isinstance(key, str) or key not in TRACKED_MODELS]
+    if unknown:
+        raise UpdatePricesError(
+            "unknown model keys " + ", ".join(map(str, unknown)) +
+            f"; tracked models are: {', '.join(TRACKED_MODELS)}")
+    if not selected:
+        raise UpdatePricesError(f"{MODELS_ENV} is empty; select at least one tracked model")
+    return selected
+
+
+def _parse_budget_component(value: Any, label: str) -> int:
+    if isinstance(value, bool) or not value:
+        raise UpdatePricesError(f"budget {label} must be a positive integer CLP amount")
+    if isinstance(value, int):
+        parsed = value
+    else:
+        try:
+            parsed = int(str(value).strip())
+        except ValueError as exc:
+            raise UpdatePricesError(
+                f"budget {label} must be a positive integer CLP amount") from exc
+    if parsed <= 0:
+        raise UpdatePricesError(f"budget {label} must be a positive integer CLP amount")
+    return parsed
+
+
+def budget_from_options(within_max: Any, near_max: Any,
+                        env: dict | None = None) -> Budget:
+    """Resolve the budget: CLI value > env value > project default.
+
+    An invalid configuration raises UpdatePricesError before any network
+    request or history write.
+    """
+    env = env or {}
+    raw_within = within_max if within_max is not None else env.get(WITHIN_MAX_ENV) or None
+    raw_near = near_max if near_max is not None else env.get(NEAR_MAX_ENV) or None
+    within = (DEFAULT_BUDGET.within_max if raw_within is None
+              else _parse_budget_component(raw_within, WITHIN_MAX_ENV))
+    near = (DEFAULT_BUDGET.near_max if raw_near is None
+            else _parse_budget_component(raw_near, NEAR_MAX_ENV))
+    if near <= within:
+        raise UpdatePricesError(
+            f"budget stretch band ({NEAR_MAX_ENV}={near}) must be greater than "
+            f"the price cap ({WITHIN_MAX_ENV}={within})")
+    return Budget(within, near)
+
+
 def detect_model(text: str) -> str | None:
-    """Return 's23' / 's23_fe' only for clearly named S23 or S23 FE devices."""
+    """Return the tracked S23/S23 FE/S23+/S24 FE model, else None.
+
+    Base S24, S24+, S24 Ultra and S23 Ultra are not tracked.
+    """
     upper = re.sub(r"\s+", " ", text.upper())
     if re.search(r"S\s*23\s*FE\b", upper):
         return "s23_fe"
-    if re.search(r"S\s*23\s*ULTRA\b", upper) or re.search(r"S\s*23\s*(?:PLUS\b|\+)", upper):
+    if re.search(r"S\s*24\s*FE\b", upper):
+        return "s24_fe"
+    if re.search(r"S\s*23\s*(?:PLUS\b|\+)", upper):
+        return "s23_plus"
+    if re.search(r"S\s*23\s*ULTRA\b", upper):
         return None
     if re.search(r"S\s*23\b", upper):
         return "s23"
@@ -331,8 +424,10 @@ def model_code_and_processor(text: str, model: str | None) -> tuple[str | None, 
     match = re.search(r"\bSM-(S\d{3}[A-Z0-9/.-]*)", text, flags=re.IGNORECASE)
     model_code = match.group(0).upper() if match else None
     processor = "unknown"
-    if model == "s23":
+    if model in ("s23", "s23_plus"):
         processor = "Snapdragon 8 Gen 2 for Galaxy"
+    elif model == "s24_fe":
+        processor = "Exynos 2400e"
     elif model == "s23_fe" and model_code:
         if model_code.startswith("SM-S711B"):
             processor = "Exynos 2200"
@@ -341,10 +436,13 @@ def model_code_and_processor(text: str, model: str | None) -> tuple[str | None, 
     return model_code, processor
 
 
-def normalize_offer(raw: Any, source: str) -> dict | None:
+def normalize_offer(raw: Any, source: str,
+                    budget: tuple[int, int] | None = None) -> dict | None:
     """Normalize one catalog item; None means policy exclusion.
 
-    Raises InvalidPayloadError for malformed items (missing title, missing or
+    ``budget`` is an optional ``(within_max, near_max)`` CLP pair that
+    overrides the default price bands for band classification. Raises
+    InvalidPayloadError for malformed items (missing title, missing or
     unparseable price) so a response made only of garbage can be rejected.
     """
     if not isinstance(raw, dict):
@@ -383,7 +481,7 @@ def normalize_offer(raw: Any, source: str) -> dict | None:
     price = parse_price(amount)
     if price is None:
         raise InvalidPayloadError(f"catalog item has an unusable price: {amount!r}")
-    band = price_band(price)
+    band = price_band(price, *(budget or ()))
     if band == BAND_EXCLUDED:
         return None
 
@@ -873,7 +971,8 @@ def _timestamp(now: datetime) -> str:
 
 
 def apply_snapshot(history: dict, week: str, records: list[dict],
-                   source_status: dict, now: datetime) -> dict:
+                   source_status: dict, now: datetime,
+                   budget: Budget = DEFAULT_BUDGET) -> dict:
     """Merge this run's observation into `week`, pruning history to MAX_WEEKS."""
     snapshots = dict(history.get("snapshots", {}))
     # This snapshot represents the latest collection, not a union of every
@@ -891,11 +990,16 @@ def apply_snapshot(history: dict, week: str, records: list[dict],
     updated = dict(history)
     updated["snapshots"] = {key: snapshots[key] for key in sorted(keep)}
     updated["last_collected_at"] = _timestamp(now)
+    updated["budget"] = {"currency": BUDGET_CURRENCY,
+                         "within_max": budget.within_max,
+                         "near_max": budget.near_max}
     return updated
 
 
 def run_collection(history_path: str, sources=DEFAULT_SOURCES, query: str | None = None,
-                   profile: str | None = None, now: datetime | None = None) -> dict:
+                   profile: str | None = None, now: datetime | None = None,
+                   budget: Budget | tuple[int, int] | None = None,
+                   models: tuple[str, ...] | None = None) -> dict:
     """Collect from every source and persist one weekly snapshot.
 
     UCP ``search_catalog`` is the primary, supported interface and needs an
@@ -906,45 +1010,63 @@ def run_collection(history_path: str, sources=DEFAULT_SOURCES, query: str | None
     writing anything when every source fails, the existing history is
     unusable, or access is denied mid-run.
     """
-    env_profile = os.environ.get(PROFILE_ENV_VAR, "").strip()
-    profile = profile or env_profile
-    if profile:
-        profile = validate_profile_url(profile)
-    now = now or datetime.now(timezone.utc)
-    history = load_history(history_path)
-
-    queries = (query,) if query else DEFAULT_QUERIES
-    all_records: list[dict] = []
-    source_status: dict[str, str] = {}
-    for site_root in sources:
+    global ACTIVE_BUDGET
+    effective_budget = (DEFAULT_BUDGET if budget is None
+                        else budget_from_options(*budget, {}))
+    effective_models = models if models is not None else models_from_options(None, {})
+    previous_budget = ACTIVE_BUDGET
+    ACTIVE_BUDGET = effective_budget
+    try:
+        env_profile = os.environ.get(PROFILE_ENV_VAR, "").strip()
+        profile = profile or env_profile
         if profile:
+            profile = validate_profile_url(profile)
+        now = now or datetime.now(timezone.utc)
+        history = load_history(history_path)
+
+        queries = (query,) if query else DEFAULT_QUERIES
+        all_records: list[dict] = []
+        source_status: dict[str, str] = {}
+        for site_root in sources:
+            if profile:
+                try:
+                    all_records.extend(collect_queries_from_source(site_root, profile, queries))
+                    source_status[site_root] = "ok"
+                    continue
+                except AccessDeniedError:
+                    raise  # stop on access denial / rate limits: no further requests
+                except UpdatePricesError as exc:
+                    source_status[site_root] = f"error: {exc}"
+                    continue
             try:
-                all_records.extend(collect_queries_from_source(site_root, profile, queries))
-                source_status[site_root] = "ok"
-                continue
+                all_records.extend(collect_public_json_from_source(site_root))
             except AccessDeniedError:
-                raise  # stop on access denial / rate limits: no further requests
+                raise
             except UpdatePricesError as exc:
                 source_status[site_root] = f"error: {exc}"
-                continue
-        try:
-            all_records.extend(collect_public_json_from_source(site_root))
-        except AccessDeniedError:
-            raise
-        except UpdatePricesError as exc:
-            source_status[site_root] = f"error: {exc}"
-        else:
-            source_status[site_root] = "ok (public product JSON)"
-    if not any(status.startswith("ok") for status in source_status.values()):
-        raise UpdatePricesError(
-            "no source returned usable data; price history unchanged "
-            f"(sources: {source_status})")
+            else:
+                source_status[site_root] = "ok (public product JSON)"
+        if not any(status.startswith("ok") for status in source_status.values()):
+            raise UpdatePricesError(
+                "no source returned usable data; price history unchanged "
+                f"(sources: {source_status})")
 
-    week = iso_week(now)
-    updated = apply_snapshot(history, week, all_records, source_status, now)
-    save_history(history_path, updated)
-    return {"week": week, "offer_count": len(updated["snapshots"][week]["offers"]),
-            "sources": source_status}
+        if effective_models != TRACKED_MODELS:
+            all_records = [record for record in all_records
+                           if record["model"] in effective_models]
+
+        week = iso_week(now)
+        updated = apply_snapshot(history, week, all_records, source_status, now,
+                                 budget=effective_budget)
+        save_history(history_path, updated)
+        return {"week": week,
+                "offer_count": len(updated["snapshots"][week]["offers"]),
+                "sources": source_status,
+                "budget": (effective_budget.within_max,
+                           effective_budget.near_max),
+                "models": tuple(effective_models)}
+    finally:
+        ACTIVE_BUDGET = previous_budget
 
 
 # --- CLI -------------------------------------------------------------------
@@ -960,8 +1082,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--source", action="append", dest="sources", metavar="SITE_ROOT",
                         help="merchant site root publishing /.well-known/ucp; repeatable "
                              "(default: Reuse and Bodega Oportunidades)")
+    parser.add_argument("--models", default=None,
+                        metavar="KEYS",
+                        help="comma-separated tracked model keys to record, e.g. "
+                             "s23,s24_fe (default: all tracked models; identity is "
+                             "%s)" % MODELS_ENV)
     parser.add_argument("--query", default=None,
-                        help="use one custom catalog search query (default: searches S23 and S23 FE)")
+                        help="use one custom catalog search query (default: searches all tracked "
+                             "models: S23, S23 FE, S23+ and S24 FE)")
+    parser.add_argument("--within-max", type=int, default=None,
+                        metavar="CLP",
+                        help=f"price cap accepted by default "
+                             f"(default: %(default)s CLP or {WITHIN_MAX_ENV})")
+    parser.add_argument("--near-max", type=int, default=None,
+                        metavar="CLP",
+                        help=f"stretch band limit, still recorded but marked "
+                             f"near_budget (default: %(default)s CLP or {NEAR_MAX_ENV})")
     return parser
 
 
@@ -969,7 +1105,10 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     sources = tuple(args.sources) if args.sources else DEFAULT_SOURCES
     try:
-        summary = run_collection(args.history, sources=sources, query=args.query)
+        budget = budget_from_options(args.within_max, args.near_max, os.environ)
+        models = models_from_options(args.models, os.environ)
+        summary = run_collection(args.history, sources=sources, query=args.query,
+                                 budget=budget, models=models)
     except ProfileMissingError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

@@ -5,10 +5,10 @@
     "within_max": 340000,
     "near_max": 370000
   },
-  "last_collected_at": "2026-11-07T23:26:22+00:00",
+  "last_collected_at": "2026-11-08T14:56:13+00:00",
   "snapshots": {
     "2026-W45": {
-      "collected_at": "2026-11-07T23:26:22+00:00",
+      "collected_at": "2026-11-08T14:56:13+00:00",
       "sources": {
         "https://reusecl.myshopify.com": "ok (public product JSON)",
         "https://bogedaoportunidades.myshopify.com": "ok (public product JSON)",
@@ -28,6 +28,19 @@
           "band": "near_budget",
           "available": null,
           "url": "https://dlphone.cl/products/samsung-galaxy-s23-256gb-verde-reacondicionado?variant=43406615773244"
+        },
+        {
+          "key": "https://dlphone.cl#45910253011004",
+          "source": "https://dlphone.cl",
+          "model": "s24_fe",
+          "model_code": null,
+          "processor": "Exynos 2400e",
+          "title": "Samsung Galaxy S24 Fe 128Gb Negro Reacondicionado Negro",
+          "price": 309990,
+          "currency": "CLP",
+          "band": "within_budget",
+          "available": null,
+          "url": "https://dlphone.cl/products/samsung-galaxy-s24-fe-128gb-negro-reacondicionado?variant=45910253011004"
         },
         {
           "key": "https://reusecl.myshopify.com#48727742152921",

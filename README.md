@@ -8,16 +8,24 @@ stays on this machine: no GitHub Actions, no automatic remote commits.
 
 ## Budget bands (CLP)
 
-| Band | Range | Meaning |
+| Band | Range (defaults) | Meaning |
 | --- | --- | --- |
-| `within_budget` | up to 340,000 | through the CLP 340,000 cap |
-| `near_budget` | 340,001 – 370,000 | alert band up to the CLP 370,000 margin |
-| excluded | above 370,000 | not recorded |
+| `within_budget` | up to 340,000 | through the price cap you accept |
+| `near_budget` | 340,001 – 370,000 | stretch band: how far you would stretch the wallet |
+| excluded | above the near cap | not recorded |
 
-Only listings that clearly identify the device as refurbished
-(`reacondicionado`, `refurbished`, `remanufactured`) are collected; items
-described merely as used / seminuevo / segunda mano are excluded, and so are
-S23 Ultra, S23+ and any non-S23 model.
+The caps are yours to set; the values above are the defaults. Pass
+`--within-max CLP` and `--near-max CLP` (the stretch band must be strictly
+greater than the cap), or set `S23_WITHIN_MAX` / `S23_NEAR_MAX` in the
+timer's environment file. The configured caps travel into
+`data/price-history.json` (`budget`), and the page reads them from there —
+no page hardcoded values.
+
+Tracked models: **Galaxy S23**, **Galaxy S23 FE**, **Galaxy S23+** and
+**Galaxy S24 FE**, all clearly identified as refurbished
+(`reacondicionado`, `refurbished`, `remanufactured`); items described merely
+as used / seminuevo / segunda mano are excluded, and so are the S23 Ultra,
+the base S24, S24+, S24 Ultra and any other non-tracked model.
 
 ## Collector
 
@@ -68,7 +76,18 @@ UCP_AGENT_PROFILE_URL="https://your-profile-host.example/ucp.json" \
 ```
 
 Optional flags: `--history PATH`, `--source SITE_ROOT` (repeatable),
-`--query TEXT`.
+`--query TEXT`, `--within-max CLP` (price cap; env `S23_WITHIN_MAX`),
+`--near-max CLP` (stretch band; env `S23_NEAR_MAX`), and `--models KEYS`
+(comma-separated tracked model keys, e.g. `s23,s24_fe`; env `S23_MODELS`;
+default: all four tracked models). The searches still cover every tracked
+model; `--models` only narrows which recorded offers are saved.
+
+### Manufacturer support windows shown on the page
+
+The dashboard reports how much time is left of Samsung's security updates per
+tracked model (S23 / S23+ / S23 FE: security until 2028-02, 4 OS + 5 years;
+S24 FE: 7 years of OS and security, security until 2031-09). The dashboard
+computes the remaining months each time you open the page.
 
 ### Scheduled collection (daily systemd user timer)
 
